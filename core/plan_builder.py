@@ -12,7 +12,7 @@ def build_plan(mode='full', *, has_figures=False, research=False, citation_verif
         add('INGEST',[],['NORMALIZED_CONTENT'],['content_extract'])
         add('SEMANTIC_PARSE',['NORMALIZED_CONTENT'],['CONTENT_READY'])
         add('CITATION_LOCAL',['CONTENT_READY'],['CITATION_LOCAL_READY'])
-        if citation_verify: add('CITATION_VERIFY',['CITATION_LOCAL_READY'],['CITATION_READY'],['citation_verify'])
+        if citation_verify: add('CITATION_VERIFY',['CITATION_LOCAL_READY'],['CITATION_REVIEW_READY'],['citation_verify'])
         return tasks
 
     add('CONFIG_VERIFY',[],['CONFIG_READY'])
@@ -33,24 +33,29 @@ def build_plan(mode='full', *, has_figures=False, research=False, citation_verif
     if mode=='full':
         add('CITATION_LOCAL',['CONTENT_READY'],['CITATION_LOCAL_READY'])
         if research: add('RESEARCH',['CONTENT_READY'],['RESEARCH_READY'],['research'])
-        if citation_verify: add('CITATION_VERIFY',['CITATION_LOCAL_READY'],['CITATION_READY'],['citation_verify'])
+        if citation_verify: add('CITATION_VERIFY',['CITATION_LOCAL_READY'],['CITATION_REVIEW_READY'],['citation_verify'])
     elif citation_verify:
         add('CITATION_LOCAL',['CONTENT_READY'],['CITATION_LOCAL_READY'])
-        add('CITATION_VERIFY',['CITATION_LOCAL_READY'],['CITATION_READY'],['citation_verify'])
+        add('CITATION_VERIFY',['CITATION_LOCAL_READY'],['CITATION_REVIEW_READY'],['citation_verify'])
 
     if has_figures: add('FIGURE_PREP',['CONTENT_READY'],['FIGURE_READY'],['figure_assets'])
 
     if mode=='full' and semantic_validate:
         sem_req=['CONTENT_READY','CITATION_LOCAL_READY']
         if research: sem_req.append('RESEARCH_READY')
-        if citation_verify: sem_req.append('CITATION_READY')
-        add('SEMANTIC_AUDIT',sem_req,['SEMANTIC_GATE_PASS'])
+        if citation_verify: sem_req.append('CITATION_REVIEW_READY')
+        add('SEMANTIC_AUDIT',sem_req,['SEMANTIC_GATE_PASS','SEMANTIC_REWORK_REQUIRED'])
+        add('SEMANTIC_REWORK',['SEMANTIC_REWORK_REQUIRED'],['CONTENT_REVISED'],['content_rewrite'])
+        reaudit_req=['CONTENT_REVISED','CITATION_LOCAL_READY']
+        if research: reaudit_req.append('RESEARCH_READY')
+        if citation_verify: reaudit_req.append('CITATION_REVIEW_READY')
+        add('SEMANTIC_REAUDIT',reaudit_req,['SEMANTIC_GATE_PASS'])
 
     req=['TEMPLATE_READY','CONTENT_READY','TEMPLATE_CONTENT_CLEAN']
     if mode=='full': req.append('CITATION_LOCAL_READY')
     if mode=='full' and semantic_validate: req.append('SEMANTIC_GATE_PASS')
     if has_figures: req.append('FIGURE_READY')
-    if citation_verify: req.append('CITATION_READY')
+    if citation_verify and not (mode=='full' and semantic_validate): req.append('CITATION_REVIEW_READY')
     add('OFFICE_COMPOSE',req,['DOCX_READY'],['office_compose'])
     add('FIELD_REFRESH',['DOCX_READY'],['FIELDS_READY'],['field_refresh'])
     add('STRUCTURE_AUDIT',['FIELDS_READY'],['STRUCTURE_GATE_PASS'])
