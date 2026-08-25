@@ -1,0 +1,7 @@
+{
+  "schema":"academic-workflow-profile/v1",
+  "id":"undergraduate_thesis",
+  "required_semantic_roles":["title","abstract_zh","chapter_heading","body","reference_heading"],
+  "optional_tasks":["research","citation_verify","figures","engineering_condition_audit"],
+  "delivery_gates":["CONFIG_GATE","STRUCTURE_GATE","CONTENT_GATE","TEMPLATE_GATE","VISUAL_GATE"]
+}
