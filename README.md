@@ -1,19 +1,35 @@
 # academic-workflow-engine
 
-Reusable academic-document workflow engine for thesis/report production. A real thesis DOCX is treated as a formatting exemplar only; academic content, citations, figures and personal metadata are not reusable template assets.
+Reusable academic-document workflow engine for thesis/report production. The engine treats a real thesis DOCX as a **formatting exemplar only**: layout, styles, paragraph behavior, section/page-number rules, table prototypes, header/footer structure and equation rules can be reused; exemplar thesis content, figures, citations and personal metadata are discarded.
 
 ## Design status: v1.2 reviewer-authority QA
 
-The engine uses immutable Template Packs, a Thesis AST, a dependency-driven DAG, local/external citation review, claim/evidence review, Office provider contracts, and CONFIG / SEMANTIC / STRUCTURE / CONTENT / TEMPLATE / VISUAL delivery gates.
+Implemented:
+- immutable versioned Template Packs + per-run physical config copies;
+- write-before path policy, read-only baseline and post-run SHA-256 verification;
+- Template Compiler: layout, style roles, cover title inference, semantic section rules, table prototypes, header/footer field structure, figure/table caption rules, native-OMML observations and content-free skeleton;
+- MarkItDown content-bus adapter with lossless Markdown/TXT passthrough and no silent fallback for Office/PDF formats;
+- Thesis AST, engineering-condition roles, claim/provenance extraction and figure/table cross-reference inventory;
+- dynamic DAG modes (`full`, `format_only`, `audit_only`, `citation_only`, `template_migration`) with persisted checkpoints and transition guards;
+- local citation bijection, external-evidence contract, claim-level semantic gate, figure preflight/hash manifest and template-content contamination gate;
+- `academic-office-job/v2`: semantic section blueprint + semantic formatting roles, never hardcoded school font constants in business logic;
+- Office Host Bridge and Provider Registry for Microsoft Word Skill / WPS Word Skill;
+- provider acceptance lock: a provider cannot become `BOUND` without matching acceptance evidence;
+- font preflight, native OMML requirement, TOC/field/cross-reference contracts;
+- six mandatory delivery gates: CONFIG / SEMANTIC / STRUCTURE / CONTENT / TEMPLATE / VISUAL;
+- full-mode convergence rule: RESEARCH/CITATION verification must feed SEMANTIC_AUDIT before OFFICE_COMPOSE; format-only/template-migration remain content-neutral;
+- delivery manifest with artifact hashes and safe resume/recovery semantics.
 
-### Reviewer-authority QA
+## Current real template
 
-Academic QA behaves like a reviewer rather than a binary execution kill-switch. Citation/entity verification feeds a review report into the central semantic reviewer. The reviewer can `ACCEPT`, request `MINOR_REVISION`, request recoverable `MAJOR_REVISION`, or `REJECT` a non-reviewable/integrity failure.
+`templates/changchun_ih/undergraduate_thesis_2026/1.1.0/` is the first real one-school baseline. It is evidence for this template only, not a claim that other universities use the same format. New universities are onboarded by compiling new immutable Template Packs; the core workflow is unchanged.
 
-`MAJOR_REVISION` blocks Office composition and routes the manuscript back to the responsible writer/reference/calculation worker. QA may prescribe an action or recommend a wording downgrade but never silently rewrites academic substance. Only a `SEMANTIC_GATE_PASS` unlocks final Office composition.
+## External dependencies intentionally not faked
 
-The undergraduate profile requires at least five externally verified English references.
+Microsoft Word Skill and WPS Word Skill are currently represented by `UNBOUND` provider manifests. Production binding requires the real skill plus the provider acceptance suite. MarkItDown is an optional runtime dependency; this construction environment had no network access, so DOCX/PDF round-trip cannot be falsely marked PASS here. Markdown/TXT input remains fully testable.
 
-## Baseline
+`reference-test-provider` exists only to prove engine contracts/gates end to end. It is explicitly non-production and must never be used as evidence of Microsoft/WPS fidelity.
 
-`main` retains the Drive-side v1.1 semantic-gate baseline and a source-only archive under `baseline/`. Reviewer-authority changes are developed on `qa-reviewer-authority-v1.2` for comparison and review.
+## Reviewer-authority QA (v1.2)
+
+Academic QA behaves like a reviewer rather than a binary execution kill-switch. Citation/entity verification feeds a review report into the central semantic reviewer. The reviewer can `ACCEPT`, request `MINOR_REVISION`, request recoverable `MAJOR_REVISION`, or `REJECT` a non-reviewable/integrity failure. Major revisions block Office composition and are routed back to the responsible writer/reference/calculation worker; QA may prescribe an action or recommend a wording downgrade but never silently rewrites academic substance.

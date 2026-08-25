@@ -17,6 +17,20 @@ description: Reusable academic document scheduler that compiles a thesis example
 8. **No gate, no delivery.** CONFIG, SEMANTIC, STRUCTURE, CONTENT, TEMPLATE and VISUAL must all execute and return PASS/PASS_W.
 9. **Template is frozen from academic substance.** Formatting/template modes never invent, rewrite, or validate thesis claims; semantic validation belongs to the writing/content path before Office composition.
 
+## Template Compiler
+
+Compile `example.docx` once into a versioned Template Pack. Extract only formatting facts:
+- page geometry, margins and section/page-number behavior;
+- semantic paragraph roles and direct formatting (including cover title inference);
+- table layout prototypes without cell text;
+- header/footer structure and field codes without header/footer text;
+- figure/table caption styles and numbering policy;
+- native OMML equation observations/rules;
+- styles/theme/font table via content-free `skeleton.docx`;
+- discarded content SHA-256 fingerprints for contamination checks.
+
+The template pack is then locked read-only. A new university means a new Template Pack, not changes to thesis business logic.
+
 ## Runtime flow
 
 A full run is dependency-driven, not a fixed eight-step script:
@@ -27,15 +41,19 @@ A full run is dependency-driven, not a fixed eight-step script:
 
 For `full` mode, research/citation branches converge at `SEMANTIC_AUDIT`. External citation verification produces review evidence, not an automatic terminal run failure. The semantic reviewer owns the academic disposition: `ACCEPT`, `MINOR_REVISION`, `MAJOR_REVISION`, or `REJECT`. `MAJOR_REVISION` blocks Office composition but routes the manuscript to a recoverable rework task; only `SEMANTIC_GATE_PASS` unlocks `OFFICE_COMPOSE -> FIELD_REFRESH`. `format_only` and `template_migration` intentionally skip semantic judgment so the template layer remains content-neutral.
 
-Then run independent audits: `STRUCTURE_AUDIT`, `TEMPLATE_AUDIT`, `RENDER -> VISUAL_AUDIT`, and `ROUNDTRIP -> CONTENT_AUDIT`. Only their gate artifacts unlock `FINAL_GATES -> DELIVERY`.
+Then run independent audits: `STRUCTURE_AUDIT`, `TEMPLATE_AUDIT`, `RENDER -> VISUAL_AUDIT`, and `ROUNDTRIP -> CONTENT_AUDIT`.
+
+Only their gate artifacts unlock `FINAL_GATES -> DELIVERY`.
 
 ## Thesis AST
 
-`academic-thesis-ast/v1` represents title, abstracts, headings, body, figures, tables, captions, equations, references and acknowledgments. It carries claim/provenance records (`measured`, `simulated`, `calculated`, `literature`, `design_target`, `interpretive`) and evidence-linked engineering conditions.
+`academic-thesis-ast/v1` represents title, abstracts, headings, body, figures, tables, captions, equations, references and acknowledgments. It also carries claim/provenance records (`measured`, `simulated`, `calculated`, `literature`, `design_target`, `interpretive`). Engineering conditions are separate evidence-linked records (`operating_envelope`, `worst_case`, `design_requirement`, `design_load`, `selected_component`, `verification_result`, etc.). Figure/table cross-reference relationships are recorded separately from formatting.
+
+Display-math input should become equation blocks. Production Office providers must emit native OMML where equations exist; text/image fallback requires explicit PASS_W policy and may be rejected by the target profile.
 
 ## Writing-layer semantic contract
 
-The engine does not write the thesis itself, but `full` mode validates academic claims before formatting:
+The engine does not write the thesis itself, but `full` mode now validates academic claims before formatting:
 
 - **measured** claims require verified experiment/dataset/raw-data/test-log evidence;
 - **simulated** claims require verified solver/model/output evidence;
@@ -48,7 +66,22 @@ Writers or research providers may bind explicit evidence with `[[EVIDENCE:<id>]]
 
 ## Office compatibility layer
 
-Production provider families are `microsoft-word-skill` and `wps-word-skill`. Provider transport is `host_skill`: the engine writes a provider request, the host invokes the real skill, then the engine validates/accepts the returned artifacts. Scheduler owns order; Office providers own Office mechanics.
+`academic-office-job/v2` contains:
+- canonical semantic section blueprint;
+- block IDs and semantic roles;
+- target semantic sections;
+- style references into the run config;
+- asset refs and cross-reference relationships;
+- required Office actions and post-actions;
+- invariants forbidding baseline mutation and exemplar-content copying.
+
+Production provider families are `microsoft-word-skill` and `wps-word-skill`. Provider transport is `host_skill`: the engine writes a provider request, the host invokes the real skill, then the engine validates/accepts the returned artifacts. Do not mark a provider bound manually.
+
+Provider acceptance must cover sections/page numbers, TOC/field refresh, figures/captions/REF, table prototypes, native OMML, font coverage/substitution, PDF export/render, host visual review, MarkItDown round-trip and baseline immutability.
+
+## Fonts
+
+Font requirements are extracted from the Template Pack. Production providers must report available fonts/substitutions. Missing fonts with no explicit substitution fail preflight. Silent renderer substitution is not acceptable evidence.
 
 ## Gates
 
