@@ -6,6 +6,7 @@ ROOT=Path(__file__).resolve().parent
 sys.path.insert(0,str(ROOT))
 from core.run_workspace import create_run, verify_run_baseline
 from core.config_lock import verify_lock
+from core.scheduler import Scheduler
 from core.plan_builder import build_plan
 from core.execution import initialize as scheduler_initialize, ready as scheduler_ready, complete as scheduler_complete
 from template_compiler.compiler import compile_template
@@ -32,6 +33,7 @@ from core.recovery import inspect as recovery_inspect
 from core.delivery import package as delivery_package
 from audit.font_preflight import requirements as font_requirements, evaluate as font_evaluate
 from audit.semantic_gate import audit as semantic_audit
+
 
 def emit(x):print(json.dumps(x,ensure_ascii=False,indent=2))
 def caps_to_dict(c):return {'provider':c.provider,'actions':sorted(c.actions),'metadata':c.metadata}
@@ -79,7 +81,7 @@ def main():
     elif a.cmd=='init-run':emit(create_run(a.runs_root,a.template_pack,a.run_id))
     elif a.cmd=='verify-run':emit(verify_run_baseline(a.run_dir))
     elif a.cmd=='plan':
-        tasks=build_plan(a.mode,has_figures=a.figures,research=a.research,citation_verify=a.citation_verify,roundtrip=not a.no_roundtrip,semantic_validate=not a.no_semantic_validate);obj={'schema':'academic-workflow-plan/v3','mode':a.mode,'semantic_validate':not a.no_semantic_validate,'tasks':[t.__dict__ for t in tasks]}
+        tasks=build_plan(a.mode,has_figures=a.figures,research=a.research,citation_verify=a.citation_verify,roundtrip=not a.no_roundtrip,semantic_validate=not a.no_semantic_validate); obj={'schema':'academic-workflow-plan/v3','mode':a.mode,'semantic_validate':not a.no_semantic_validate,'tasks':[t.__dict__ for t in tasks]}
         if a.out:Path(a.out).write_text(json.dumps(obj,ensure_ascii=False,indent=2),encoding='utf-8')
         emit(obj)
     elif a.cmd=='scheduler-init':
@@ -91,8 +93,8 @@ def main():
     elif a.cmd=='capabilities':emit({'markitdown':markitdown_capabilities(),'office':{'microsoft':caps_to_dict(ms_caps()),'wps':caps_to_dict(wps_caps())}})
     elif a.cmd=='ingest':emit(markitdown_convert(a.input,a.out))
     elif a.cmd=='semantic-parse':
-        ast=parse_markdown(a.input,a.out);result={'status':'PASS','ast':a.out,'blocks':len(ast['blocks']),'engineering_conditions':len(ast['engineering_conditions']),'claims':len(ast.get('claims',[]))}
-        if a.inventory:inventory_ast(ast,a.inventory);result['inventory']=a.inventory
+        ast=parse_markdown(a.input,a.out); result={'status':'PASS','ast':a.out,'blocks':len(ast['blocks']),'engineering_conditions':len(ast['engineering_conditions']),'claims':len(ast.get('claims',[]))}
+        if a.inventory: inventory_ast(ast,a.inventory); result['inventory']=a.inventory
         emit(result)
     elif a.cmd=='office-job':emit(build_office_job(json.loads(Path(a.ast).read_text(encoding='utf-8')),a.run_config,a.out,a.provider))
     elif a.cmd=='content-gate':
@@ -103,7 +105,7 @@ def main():
         from audit.citation_gate import review_external
         r=review_external(json.loads(Path(a.report).read_text(encoding='utf-8')),min_verified_english=a.min_verified_english,out_json=a.out);emit(r);raise SystemExit(2 if r['status']=='FAIL' else 0)
     elif a.cmd=='semantic-gate':
-        ast=json.loads(Path(a.ast).read_text(encoding='utf-8'));evidence=json.loads(Path(a.evidence).read_text(encoding='utf-8')) if a.evidence else None
+        ast=json.loads(Path(a.ast).read_text(encoding='utf-8')); evidence=json.loads(Path(a.evidence).read_text(encoding='utf-8')) if a.evidence else None
         citation_review=json.loads(Path(a.citation_review).read_text(encoding='utf-8')) if a.citation_review else None
         r=semantic_audit(ast,evidence,citation_review=citation_review,strict=a.strict,out_json=a.out);emit(r);raise SystemExit(0 if r['status'] in {'PASS','PASS_W'} else 2)
     elif a.cmd=='figure-prep':
@@ -128,8 +130,14 @@ def main():
     elif a.cmd=='provider-accept':emit(office_accept(json.loads(Path(a.response).read_text(encoding='utf-8')),a.run_dir,a.out))
     elif a.cmd=='provider-result-validate':
         r=validate_job_result(json.loads(Path(a.job).read_text(encoding='utf-8')),json.loads(Path(a.response).read_text(encoding='utf-8')));emit(r);raise SystemExit(0 if r['status']=='PASS' else 2)
+    elif a.cmd=='provider-acceptance':
+        load=lambda x:json.loads(Path(x).read_text(encoding='utf-8'));r=provider_acceptance(a.provider_id,load(a.job),load(a.office_result),load(a.structure),load(a.template),load(a.visual),load(a.content) if a.content else None,load(a.font_preflight) if a.font_preflight else None,a.out);emit(r);raise SystemExit(0 if r['status']=='PASS' else 2)
+    elif a.cmd=='provider-bind':
+        ac=json.loads(Path(a.acceptance).read_text(encoding='utf-8'));emit(provider_bind(a.provider_id,a.family,list(filter(None,(x.strip() for x in a.actions.split(',')))),a.binding_ref,a.out,ac))
+    elif a.cmd=='provider-unbound':emit(provider_unbound(a.provider_id,a.family,list(filter(None,(x.strip() for x in a.actions.split(',')))),a.out,a.reason))
     elif a.cmd=='recovery':emit(recovery_inspect(a.run_dir,set(filter(None,(x.strip() for x in a.capabilities.split(','))))))
-    elif a.cmd=='delivery':emit(delivery_package(a.run_dir,json.loads(Path(a.artifacts).read_text(encoding='utf-8')),a.out))
+    elif a.cmd=='delivery':
+        arts=json.loads(Path(a.artifacts).read_text(encoding='utf-8'));emit(delivery_package(a.run_dir,arts,a.out))
     elif a.cmd=='font-requirements':
         r=font_requirements(a.config)
         if a.out:Path(a.out).write_text(json.dumps(r,ensure_ascii=False,indent=2),encoding='utf-8')
