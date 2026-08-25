@@ -33,6 +33,7 @@ from core.recovery import inspect as recovery_inspect
 from core.delivery import package as delivery_package
 from audit.font_preflight import requirements as font_requirements, evaluate as font_evaluate
 from audit.semantic_gate import audit as semantic_audit
+from references.supply_chain import build_supply as build_reference_supply
 
 
 def emit(x):print(json.dumps(x,ensure_ascii=False,indent=2))
@@ -55,6 +56,7 @@ def main():
     q=s.add_parser('content-gate');q.add_argument('--expected',required=True);q.add_argument('--actual',required=True);q.add_argument('--out')
     q=s.add_parser('citation-local');q.add_argument('--ast',required=True);q.add_argument('--out')
     q=s.add_parser('citation-review');q.add_argument('--report',required=True);q.add_argument('--min-verified-english',type=int,default=0);q.add_argument('--out')
+    q=s.add_parser('reference-lock');q.add_argument('--report',required=True);q.add_argument('--out-dir',required=True);q.add_argument('--phase',choices=['prewrite','audit'],default='prewrite');q.add_argument('--min-verified-english',type=int,default=5);q.add_argument('--min-total-verified',type=int,default=0)
     q=s.add_parser('semantic-gate');q.add_argument('--ast',required=True);q.add_argument('--evidence');q.add_argument('--citation-review');q.add_argument('--strict',action='store_true');q.add_argument('--out')
     q=s.add_parser('figure-prep');q.add_argument('--ast',required=True);q.add_argument('--asset-root',required=True);q.add_argument('--out-dir',required=True);q.add_argument('--manifest')
     q=s.add_parser('template-contamination');q.add_argument('--ast',required=True);q.add_argument('--discarded-hashes',required=True);q.add_argument('--out')
@@ -104,6 +106,8 @@ def main():
     elif a.cmd=='citation-review':
         from audit.citation_gate import review_external
         r=review_external(json.loads(Path(a.report).read_text(encoding='utf-8')),min_verified_english=a.min_verified_english,out_json=a.out);emit(r);raise SystemExit(2 if r['status']=='FAIL' else 0)
+    elif a.cmd=='reference-lock':
+        r=build_reference_supply(json.loads(Path(a.report).read_text(encoding='utf-8')),min_verified_english=a.min_verified_english,min_total_verified=a.min_total_verified,phase=a.phase,out_dir=a.out_dir);emit(r);raise SystemExit(2 if r['status']=='FAIL' else 0)
     elif a.cmd=='semantic-gate':
         ast=json.loads(Path(a.ast).read_text(encoding='utf-8')); evidence=json.loads(Path(a.evidence).read_text(encoding='utf-8')) if a.evidence else None
         citation_review=json.loads(Path(a.citation_review).read_text(encoding='utf-8')) if a.citation_review else None
@@ -139,7 +143,7 @@ def main():
     elif a.cmd=='delivery':
         arts=json.loads(Path(a.artifacts).read_text(encoding='utf-8'));emit(delivery_package(a.run_dir,arts,a.out))
     elif a.cmd=='font-requirements':
-        r=font_requirements(a.config)
+        r=font_requirements(a.config);
         if a.out:Path(a.out).write_text(json.dumps(r,ensure_ascii=False,indent=2),encoding='utf-8')
         emit(r)
     elif a.cmd=='font-preflight':

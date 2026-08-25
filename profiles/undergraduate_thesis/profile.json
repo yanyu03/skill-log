@@ -1,15 +1,47 @@
 {
   "schema": "academic-workflow-profile/v1",
   "id": "undergraduate_thesis",
-  "required_semantic_roles": ["title","abstract_zh","chapter_heading","body","reference_heading"],
-  "optional_tasks": ["research","citation_verify","figures","engineering_condition_audit"],
-  "delivery_gates": ["CONFIG_GATE","STRUCTURE_GATE","CONTENT_GATE","TEMPLATE_GATE","VISUAL_GATE"],
+  "required_semantic_roles": [
+    "title",
+    "abstract_zh",
+    "chapter_heading",
+    "body",
+    "reference_heading"
+  ],
+  "optional_tasks": [
+    "research",
+    "citation_verify",
+    "figures",
+    "engineering_condition_audit"
+  ],
+  "delivery_gates": [
+    "CONFIG_GATE",
+    "STRUCTURE_GATE",
+    "CONTENT_GATE",
+    "TEMPLATE_GATE",
+    "VISUAL_GATE"
+  ],
   "review_policy": {
-    "decision_model": ["ACCEPT","MINOR_REVISION","MAJOR_REVISION","REJECT"],
+    "decision_model": [
+      "ACCEPT",
+      "MINOR_REVISION",
+      "MAJOR_REVISION",
+      "REJECT"
+    ],
     "min_verified_english_references": 5,
     "major_revision_blocks_office_compose": true,
     "major_revision_is_recoverable": true,
     "minor_revision_allows_draft_compose": true,
     "qa_may_suggest_downgrade_but_must_not_silently_rewrite_claims": true
+  },
+  "reference_policy": {
+    "min_verified_english_references": 5,
+    "itemized_resolver_metadata_required_for_lock": true,
+    "invalid_candidates_are_quarantined": true,
+    "writer_may_use_only_locked_reference_ids": true,
+    "writer_may_not_modify_identity_metadata": true,
+    "preserve_verification_evidence_for_downstream": true,
+    "preserve_claim_support_scope_for_downstream": true,
+    "citation_token_format": "{{CITE:REFERENCE_ID}}"
   }
 }
