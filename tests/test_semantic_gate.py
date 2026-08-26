@@ -75,13 +75,38 @@ class SemanticGateTests(unittest.TestCase):
         tasks = {t.id: t for t in build_plan('full', research=True, citation_verify=True)}
         self.assertIn('SEMANTIC_AUDIT', tasks)
         self.assertIn('RESEARCH_READY', tasks['SEMANTIC_AUDIT'].requires)
-        self.assertIn('CITATION_READY', tasks['SEMANTIC_AUDIT'].requires)
+        self.assertIn('CITATION_REVIEW_READY', tasks['SEMANTIC_AUDIT'].requires)
         self.assertIn('SEMANTIC_GATE_PASS', tasks['OFFICE_COMPOSE'].requires)
         self.assertIn('SEMANTIC_GATE_PASS', tasks['FINAL_GATES'].requires)
 
     def test_format_only_does_not_judge_academic_substance(self):
         ids = {t.id for t in build_plan('format_only')}
         self.assertNotIn('SEMANTIC_AUDIT', ids)
+
+    def test_heading_label_is_not_a_claim(self):
+        td = tempfile.TemporaryDirectory(); self.addCleanup(td.cleanup)
+        p = Path(td.name) / 'heading.md'
+        p.write_text('# 第2章 分析\n## 2.3 有限元结果\n本节介绍分析方法。\n', encoding='utf-8')
+        ast = parse_markdown(p)
+        self.assertFalse(any(c['text'] == '2.3 有限元结果' or c['text'] == '有限元结果' for c in ast['claims']))
+
+    def test_reviewer_returns_major_revision_not_reject_for_fixable_missing_evidence(self):
+        ast = self._ast()
+        result = audit(ast, strict=True)
+        self.assertEqual(result['review_decision'], 'MAJOR_REVISION')
+        self.assertEqual(result['scheduler_recommendation']['task_status'], 'PASS_W')
+        self.assertEqual(result['scheduler_recommendation']['produce'], ['SEMANTIC_REWORK_REQUIRED'])
+        self.assertTrue(any(x['required_action']=='PROVIDE_EVIDENCE_OR_DOWNGRADE_CLAIM' for x in result['findings']))
+
+    def test_external_citation_major_revision_is_folded_into_semantic_review(self):
+        ast = self._ast()
+        citation_review={
+            'review_decision':'MAJOR_REVISION',
+            'findings':[{'severity':'major','code':'CITATION_ENTITY_MISMATCH','reference':1,'required_action':'REPLACE_OR_CORRECT_REFERENCE'}],
+        }
+        result=audit(ast,citation_review=citation_review,strict=True)
+        self.assertEqual(result['review_decision'],'MAJOR_REVISION')
+        self.assertTrue(any(x['owner']=='reference_team' for x in result['findings']))
 
 
 if __name__ == '__main__':

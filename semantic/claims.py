@@ -12,6 +12,7 @@ CLAIM_TYPES = (
     'interpretive',
 )
 
+# Order matters: stronger provenance-bearing claim types win before generic target/interpretive language.
 _PATTERNS = {
     'measured': [
         r'现场实测', r'实测(?:结果|数据)?', r'样机(?:试验|测试)', r'试验(?:结果|数据)?表明',
@@ -99,8 +100,10 @@ def risk_for(kind: str, text: str) -> str:
 
 def extract_claims(blocks: Iterable[dict]) -> list[dict]:
     claims: list[dict] = []
-    allowed = {'body', 'heading_2', 'heading_3', 'table', 'table_caption', 'figure_caption'}
+    allowed = {'body', 'table', 'table_caption', 'figure_caption'}
     for block_index, block in enumerate(blocks):
+        # Headings are navigation labels, not evidence-bearing claims. Review their body
+        # paragraphs instead; this avoids false blockers such as '有限元结果' used only as a heading.
         if block.get('role') not in allowed:
             continue
         text = ' '.join((block.get('text') or '').split())
@@ -109,6 +112,8 @@ def extract_claims(blocks: Iterable[dict]) -> list[dict]:
         clauses = [text] if block.get('role') == 'table' else [x.strip() for x in _SPLIT.split(text) if x.strip()]
         for clause_index, clause in enumerate(clauses):
             kind = classify_claim(clause)
+            # Avoid turning every ordinary sentence into a gate item. Interpretive claims are retained only
+            # when they contain a strong/absolute assertion or a quantitative statement.
             absolute_terms = [p for p in _ABSOLUTE if re.search(p, clause, re.I)]
             has_numeric = bool(_NUMERIC.search(clause))
             if kind == 'interpretive' and not absolute_terms and not has_numeric:

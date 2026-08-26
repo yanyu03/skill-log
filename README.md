@@ -2,7 +2,7 @@
 
 Reusable academic-document workflow engine for thesis/report production. The engine treats a real thesis DOCX as a **formatting exemplar only**: layout, styles, paragraph behavior, section/page-number rules, table prototypes, header/footer structure and equation rules can be reused; exemplar thesis content, figures, citations and personal metadata are discarded.
 
-## Design status: v1.1 semantic-writing gate
+## Design status: v1.2 reviewer-authority QA
 
 Implemented:
 - immutable versioned Template Packs + per-run physical config copies;
@@ -29,3 +29,7 @@ Implemented:
 Microsoft Word Skill and WPS Word Skill are currently represented by `UNBOUND` provider manifests. Production binding requires the real skill plus the provider acceptance suite. MarkItDown is an optional runtime dependency; this construction environment had no network access, so DOCX/PDF round-trip cannot be falsely marked PASS here. Markdown/TXT input remains fully testable.
 
 `reference-test-provider` exists only to prove engine contracts/gates end to end. It is explicitly non-production and must never be used as evidence of Microsoft/WPS fidelity.
+
+## Reviewer-authority QA (v1.2)
+
+Academic QA behaves like a reviewer rather than a binary execution kill-switch. Citation/entity verification feeds a review report into the central semantic reviewer. The reviewer can `ACCEPT`, request `MINOR_REVISION`, request recoverable `MAJOR_REVISION`, or `REJECT` a non-reviewable/integrity failure. Major revisions block Office composition and are routed back to the responsible writer/reference/calculation worker; QA may prescribe an action or recommend a wording downgrade but never silently rewrites academic substance.
